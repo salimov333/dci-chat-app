@@ -11,6 +11,7 @@ const nameInput = document.querySelector("#name");
 const messageIput = document.querySelector("#message");
 const message_container = document.querySelector(".message_container");
 const sendBtn = document.querySelector("#sendBtn");
+const spinner = document.querySelector(".spinner-border");
 
 //get message
 async function getMessage() {
@@ -20,20 +21,25 @@ async function getMessage() {
         if (res.ok) {
             const messages = await res.json();
             console.log(messages);
-            messages.forEach(mes => {
-                const newMessage = renderMessage(mes.from, mes.message, mes.id);
-                message_container.append(newMessage);
+
+            const renderPromises = messages.map(async msg => {
+                const newMessage = await renderMessage(msg.from, msg.message, msg.id)
+                message_container.prepend(newMessage);
             });
+            await Promise.all(renderPromises);
+            spinner.classList.add("d-none");
         } else {
             console.log(res.statusText);
-            return Promise.reject(res);
+            return;
         }
     } catch (error) {
-        console.warn('Something went wrong.', error);
+        console.error('Something went wrong.', error);
     }
 };
+getMessage();
 
-function renderMessage(from, message, id) {
+//render message
+async function renderMessage(from, message, id) {
 
     const messageDiv = document.createElement("div");
     const fromEl = document.createElement("h2");
@@ -44,27 +50,63 @@ function renderMessage(from, message, id) {
     messageEl.textContent = message;
     deleteBtn.textContent = "x";
     deleteBtn.classList.add("deleteBtn");
+    deleteBtn.title = "Delete message";
     deleteBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        console.log(e.target);
+        //e.preventDefault();
+        //console.log(e.target);
         deleteMessage(id);
         const toDeleteDiv = e.target.closest("div");
-        console.log(toDeleteDiv);
+        //console.log(toDeleteDiv);
         toDeleteDiv.remove();
     });
 
-    messageDiv.id = "message" + id;
-    messageDiv.append(deleteBtn, fromEl, messageEl);
-    return messageDiv;
-}
+    //get data from API-GitHub
+    //Authentication: https://docs.github.com/en/rest/overview/resources-in-the-rest-api#authentication
+    //Personal access tokens: https://github.com/settings/tokens
 
-getMessage();
+    try {
+        const res = await fetch(`https://api.github.com/users/${from}`, {
+            headers: {
+                Authorization: "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"
+            }
+        });
+        if (res.ok) {
+            const githubData = await res.json();
+            //console.log(githubData);
+
+            const name = githubData.name;
+            //console.log(name);
+            fromEl.textContent = name;
+
+            const avatarURL = githubData.avatar_url
+            //console.log(avatarURL);
+
+            const avatar = document.createElement("img");
+            avatar.classList.add("avatar");
+            avatar.src = avatarURL;
+            messageDiv.appendChild(avatar);
+        } else {
+            console.log(res.statusText);
+            return;
+        }
+    } catch (error) {
+        console.error('Something went wrong.', error);
+    }
+
+    messageDiv.id = "message" + id;
+    messageDiv.appendChild(deleteBtn);
+    messageDiv.appendChild(fromEl);
+    messageDiv.appendChild(messageEl);
+
+    return messageDiv;
+};
 
 //post message
 async function createMessage(e) {
     e.preventDefault();
     //console.log(e.target);
-    const nameValue = nameInput.value;
+    const nameValue = nameInput.value.trim();
+    //console.log(nameValue);
     const messageValue = messageIput.value;
     if (!nameValue || !messageValue) {
         console.log("empty field");
@@ -89,34 +131,35 @@ async function createMessage(e) {
         if (res.ok) {
             const postedMessage = await res.json();
             //console.log(postedMessage);
-            const newMessageDiv = renderMessage(postedMessage.from, postedMessage.message);
-            message_container.append(newMessageDiv);
+            const newMessageDiv = await renderMessage(postedMessage.from, postedMessage.message);
+            message_container.prepend(newMessageDiv);
+            nameInput.value = "";
+            messageIput.value = "";
 
         } else {
             console.log(res.statusText);
-            return Promise.reject(res);
+            return;
         }
     } catch (error) {
-        console.warn('Something went wrong.', error);
+        console.error('Something went wrong.', error);
     }
 };
 
 //delete message
 async function deleteMessage(id) {
-    // const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
     try {
         const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
         if (res.ok) {
             const deletedMessage = await res.json();
-            console.log(deletedMessage);
-            console.log(id);
+            //console.log(deletedMessage);
+            //console.log(id);
 
         } else {
             console.log(res.statusText);
-            return Promise.reject(res);
+            return;
         }
     } catch (error) {
-        console.warn('Something went wrong.', error);
+        console.error('Something went wrong.', error);
     }
 };
 
