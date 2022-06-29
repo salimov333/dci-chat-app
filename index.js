@@ -45,16 +45,18 @@ async function renderMessage(from, message, id) {
     const fromEl = document.createElement("h2");
     const messageEl = document.createElement("p");
     const deleteBtn = document.createElement('button');
+    const avatar = document.createElement("img");
 
     fromEl.textContent = from;
     messageEl.textContent = message;
     deleteBtn.textContent = "x";
     deleteBtn.classList.add("deleteBtn");
     deleteBtn.title = "Delete message";
-    deleteBtn.addEventListener("click", (e) => {
+
+    deleteBtn.addEventListener("click", async (e) => {
         //e.preventDefault();
         //console.log(e.target);
-        deleteMessage(id);
+        await deleteMessage(id);
         const toDeleteDiv = e.target.closest("div");
         //console.log(toDeleteDiv);
         toDeleteDiv.remove();
@@ -63,39 +65,36 @@ async function renderMessage(from, message, id) {
     //get data from API-GitHub
     //Authentication: https://docs.github.com/en/rest/overview/resources-in-the-rest-api#authentication
     //Personal access tokens: https://github.com/settings/tokens
+    const res = await fetch(`https://api.github.com/users/${from}`);
 
-    try {
-        const res = await fetch(`https://api.github.com/users/${from}`);
-        if (res.ok) {
-            const githubData = await res.json();
-            //console.log(githubData);
+    const githubData = await res.json();
+    //console.log(githubData);
 
-            const name = githubData.name;
-            //console.log(name);
-            fromEl.textContent = name;
+    const name = githubData.name;
+    //console.log(name);
+    const avatarURL = githubData.avatar_url
+    //console.log(avatarURL);
 
-            const avatarURL = githubData.avatar_url
-            //console.log(avatarURL);
 
-            const avatar = document.createElement("img");
-            avatar.classList.add("avatar");
-            avatar.src = avatarURL;
-            messageDiv.appendChild(avatar);
-        } else {
-            console.log(res.statusText);
-            return;
-        }
-    } catch (error) {
-        console.error('Something went wrong.', error);
+    if (name && avatarURL) {
+        fromEl.textContent = name;
+        avatar.src = avatarURL;
+        avatar.classList.add("avatar");
+        messageDiv.prepend(avatar);
     }
 
     messageDiv.id = "message" + id;
+
     messageDiv.appendChild(deleteBtn);
     messageDiv.appendChild(fromEl);
     messageDiv.appendChild(messageEl);
 
+
     return messageDiv;
 };
+
+//Events
+form.addEventListener("submit", createMessage);
 
 //post message
 async function createMessage(e) {
@@ -127,7 +126,7 @@ async function createMessage(e) {
         if (res.ok) {
             const postedMessage = await res.json();
             //console.log(postedMessage);
-            const newMessageDiv = await renderMessage(postedMessage.from, postedMessage.message);
+            const newMessageDiv = await renderMessage(postedMessage.from, postedMessage.message, postedMessage.id);
             message_container.prepend(newMessageDiv);
             nameInput.value = "";
             messageIput.value = "";
@@ -147,7 +146,7 @@ async function deleteMessage(id) {
         const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
         if (res.ok) {
             const deletedMessage = await res.json();
-            //console.log(deletedMessage);
+            console.log("deleted message", deletedMessage);
             //console.log(id);
 
         } else {
@@ -158,6 +157,3 @@ async function deleteMessage(id) {
         console.error('Something went wrong.', error);
     }
 };
-
-//Events
-form.addEventListener("submit", createMessage);
