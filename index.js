@@ -65,11 +65,7 @@ async function renderMessage(from, message, id) {
     //Personal access tokens: https://github.com/settings/tokens
 
     try {
-        const res = await fetch(`https://api.github.com/users/${from}`, {
-            headers: {
-                Authorization: "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"
-            }
-        });
+        const res = await fetch(`https://api.github.com/users/${from}`);
         if (res.ok) {
             const githubData = await res.json();
             //console.log(githubData);
