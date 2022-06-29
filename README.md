@@ -1,4 +1,9 @@
-# Code Busters Chat
+# DCI Chat App
+- HTML
+- CSS
+- JavaScript
+---
+*The app is published at:* [app](https://salimov333.github.io/dci-chat-app/)
 
 Baut eueren eigenen Chat!
 
